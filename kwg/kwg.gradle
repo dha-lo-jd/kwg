@@ -1,0 +1,499 @@
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+apply {
+	plugin 'java'
+	plugin 'maven'
+	plugin 'eclipse'
+}
+
+ant.condition(property: "os", value: "windows") { os(family: "windows") }
+ant.condition(property: "os", value: "unix" ) { os(family: "unix") }
+
+ext { kwg = [properties:[:]] }
+apply from: 'properties.gradle'
+kwg.setupProperties(kwg.properties)
+println kwg
+
+kwg.CONST = [
+	DIR : [
+		SRC : 'src',
+		CLASSES : 'classes',
+		TEST : [
+			SRC : 'test',
+			CLASSES : 'test_classes'
+		],
+	],
+]
+def CONST = kwg.CONST
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+task executeReobfuscateSrg(type: McpCommandTask) { command 'reobfuscate_srg' }
+
+task executeReobfuscate(type: McpCommandTask) { command 'reobfuscate' }
+
+task executeUpdateMd5(type: McpCommandTask) { command 'updatemd5 -f' }
+
+class McpCommandTask extends DefaultTask {
+	String command = 'rem'
+	String consoleInputs = ''
+
+	@TaskAction
+	def doTask() {
+		def props = project.kwg.properties
+		def mcp = props.mcp
+
+		println command
+		println consoleInputs
+
+		project.exec {
+			workingDir "$mcp.working.location"
+			if(consoleInputs != null && !consoleInputs.isEmpty()){
+				standardInput new ByteArrayInputStream(consoleInputs.getBytes("utf-8"))
+			}
+			switch(ant.properties.os){
+				case 'windows':
+					commandLine 'cmd', '/c', command
+					break
+				case 'unix':
+					commandLine command
+					break
+			}
+		}
+	}
+}
+
+task updateMd5(dependsOn: 'setupWorkingMCPLocation') << {
+	def props = kwg.properties
+	def forge = props.forge
+	def mcp = props.mcp
+
+	println "$forge.location/$forge.srcLocation -> $mcp.working.location/src"
+	sync{
+		from "$forge.location/$forge.srcLocation"
+		into "$mcp.working.location/src"
+	}
+
+
+	delete { delete "$mcp.working.location/bin" }
+	tasks.executeUpdateMd5.execute()
+
+	def binDir = file("$mcp.working.location/bin")
+	def binBaseDir = file("$mcp.working.location/bin_base")
+	if(!binBaseDir.exists()){
+		binBaseDir.mkdirs()
+	}
+	println "$binDir -> $binBaseDir"
+	sync{
+		from binDir
+		into binBaseDir
+	}
+}
+
+task reobfuscateSrg(dependsOn: 'setupWorkingMCPLocation') << {
+	def props = kwg.properties
+	def forge = props.forge
+	def mcp = props.mcp
+
+	delete { delete "$mcp.working.location/reobf" }
+
+	def classesDir = file("$mcp.working.location/$CONST.DIR.CLASSES")
+	def binDir = file("$mcp.working.location/bin")
+	def binBaseDir = file("$mcp.working.location/bin_base")
+	println "$binBaseDir -> $binDir"
+	sync{
+		from binBaseDir
+		into binDir
+	}
+	def binSrcDir = file("$mcp.working.location/bin/minecraft")
+	println "$classesDir -> $binSrcDir"
+	copy{
+		from classesDir
+		into binSrcDir
+	}
+
+	tasks.executeReobfuscateSrg.execute()
+}
+
+task reobfuscateSrgFully(dependsOn: 'updateMd5', type: ReobfuscateTask) {
+	commandExecute { tasks.executeReobfuscateSrg.execute() }
+}
+
+task reobfuscateFully(dependsOn: 'updateMd5', type: ReobfuscateTask) {
+	commandExecute { tasks.executeReobfuscate.execute() }
+}
+
+task cleanupReobfDirs(type: Delete) {
+	def props = kwg.properties
+	def mcp = props.mcp
+	delete "$mcp.working.location/reobf"
+}
+
+class ReobfuscateTask extends DefaultTask {
+	Closure commandExecute = {}
+
+	@TaskAction
+	def doTask() {
+		def CONST = project.kwg.CONST
+		def props = project.kwg.properties
+		def forge = props.forge
+		def mcp = props.mcp
+
+		project.cleanupReobfDirs.execute()
+
+		def classesDir = project.file("$mcp.working.location/$CONST.DIR.CLASSES")
+		def binDir = project.file("$mcp.working.location/bin/minecraft")
+		println "$classesDir -> $binDir"
+		project.copy{
+			from classesDir
+			into binDir
+		}
+		commandExecute()
+	}
+}
+
+task modToZip(type:Zip) {
+	def props = kwg.properties
+	def mcp = props.mcp
+	def mod = props.mod
+
+	archiveName "$mod.name-${mod.version}.zip"
+	destinationDir projectDir
+
+	def reobfDir = file("$mcp.working.location/reobf/minecraft")
+	from reobfDir
+
+	props.resources.each{k,v->
+		v.each{fileSpec->
+			def root = ''
+			if(fileSpec.root){
+				root = fileSpec.root
+			}
+			into(root){ from fileSpec.path }
+		}
+	}
+}
+
+task modCompressSrg(dependsOn: [
+	'reobfuscateSrg' ,
+	'generateMcModInfo'
+]) << {
+	tasks.modToZip.execute()
+}
+
+task modCompressSrgFully(dependsOn: [
+	'reobfuscateSrgFully' ,
+	'generateMcModInfo'
+]) << {
+	tasks.modToZip.execute()
+}
+
+task setupWorkingMCPLocation << {
+	def props = kwg.properties
+	def forge = props.forge
+	def mcp = props.mcp
+
+	def INCLUDE_FILE = ['*.bat', '*.sh']
+	def INCLUDE_FOLDER = [
+		'temp',
+		'conf',
+		'jars',
+		'lib',
+		'runtime',
+	]
+
+	def location = [
+		from : "$forge.location/$forge.mcpLocation",
+		to : "$mcp.working.location/"
+	]
+
+	def File baseDir = file("$location.to")
+
+	if(!baseDir.exists()){
+		baseDir.mkdirs()
+	}
+
+	def includeFiles = fileTree(dir: location.from, include: INCLUDE_FILE)
+	def includeDirs = fileTree(dir: location.from, include: INCLUDE_FOLDER)
+
+	def FileTree includes = includeFiles + includeDirs
+	includes.visit { fileDetails ->
+		def src = Paths.get(fileDetails.file.toURI())
+		def dest = Paths.get(file("$location.to/$fileDetails.name").toURI())
+		createLink(dest, src)
+	}
+}
+
+task cleanupWorkingMCPLocation << {
+	def props = kwg.properties
+	def forge = props.forge
+	def mcp = props.mcp
+
+	def INCLUDE_FILE = ['*.bat', '*.sh']
+	def INCLUDE_FOLDER = [
+		'temp',
+		'conf',
+		'jars',
+		'lib',
+		'runtime',
+	]
+
+	def targetFiles = fileTree(dir: mcp.working.location, include: INCLUDE_FILE)
+	def targetDirs = fileTree(dir: mcp.working.location, include: INCLUDE_FOLDER)
+	delete { delete targetFiles }
+	def dirs = []
+	targetDirs.visit { fileDetails ->
+		dirs << fileDetails.file
+	}
+	dirs.each {f->
+		f.delete()
+	}
+}
+
+protected void createLink(Path linkPath, Path entityPath) {
+	if (linkPath.toFile().exists()) {
+		return
+	}
+	try {
+		Files.createSymbolicLink(linkPath, entityPath)
+		println "Linked $linkPath --> $entityPath created."
+	} catch (IOException e) {
+		e.printStackTrace()
+	}
+}
+
+task copyJarsDir << {
+	def props = kwg.properties
+	def forge = props.forge
+	def mcp = props.mcp
+	def mod = props.mod
+
+	def jarsSrcDir = file("$forge.location/$forge.jarsLocation")
+
+	copy{
+		from jarsSrcDir
+		into "$mcp.working.location/jars"
+	}
+}
+
+task generateMcModInfo << {
+	def props = kwg.properties
+	def forge = props.forge
+	def mcp = props.mcp
+	def mod = props.mod
+
+	def dependency = props.dependency
+
+	def parent = ''
+
+	def requiredMods = []
+
+	def dependencies = []
+
+	def dependants = []
+
+	def useDependencyInformation = false
+
+	dependency.each({k,v ->
+		if(!v['mcmod']){
+			return
+		}
+		def mcmod = v.mcmod
+		if('parent' in mcmod){
+			parent = k
+			useDependencyInformation = true
+		}
+		if('requiredMods' in mcmod){
+			requiredMods << k
+			useDependencyInformation = true
+		}
+		if('dependencies' in mcmod){
+			dependencies << k
+			useDependencyInformation = true
+		}
+		if('dependants' in mcmod){
+			dependants << k
+			useDependencyInformation = true
+		}
+	})
+
+	def launchFileTemplateName = 'kwg/mcmod.info.template'
+	def launchFileTemplate = file("$launchFileTemplateName")
+	def resDir = file('res')
+	if(!resDir.exists()){
+		resDir.mkdirs()
+	}
+	def generatedLaunchFile = file("res/mcmod.info")
+
+	def launchBindings = [
+		modid : mod.name,
+		name : mod.infoName,
+		url : mod.url,
+		version : mod.version,
+		mcversion : props.minecraft.version,
+		authors : mod.authors,
+		parent : parent,
+		requiredMods : requiredMods,
+		dependencies : dependencies,
+		dependants : dependants,
+		useDependencyInformation : useDependencyInformation,
+	]
+	def engine = new groovy.text.SimpleTemplateEngine()
+	generatedLaunchFile.withWriter { w ->
+		w << engine.createTemplate(launchFileTemplate).make(launchBindings).toString()
+	}
+}
+
+task setupMcpDirs << {
+	def props = kwg.properties
+	def mod = props.mod
+
+	tasks.copyJarsDir.execute()
+
+	def launchFileTemplateName = 'kwg/mod.launch.template'
+	def launchFileTemplate = file("$launchFileTemplateName")
+	def generatedLaunchFile = file(mod.name + mod.version + ".launch")
+
+	def launchBindings = [
+		forgeDir:props.forge.location,
+		mcVersion:props.minecraft.version,
+		javaVersion:props.java.version,
+		projectName:mod.project.name,
+	]
+	def engine = new groovy.text.SimpleTemplateEngine()
+	generatedLaunchFile.withWriter { w ->
+		w << engine.createTemplate(launchFileTemplate).make(launchBindings).toString()
+	}
+}
+
+eclipse {
+	tasks.setupMcpDirs.execute()
+	tasks.cleanupWorkingMCPLocation.execute()
+
+	pom {
+		project {
+			def props = kwg.properties
+			def mod = props.mod
+			def repos = mod.repos
+			def pom = mod.pom
+			def javaVersion = props.java.version
+
+			groupId pom.groupId
+			artifactId pom.name
+			version mod.version
+			build {
+				sourceDirectory CONST.DIR.SRC
+				outputDirectory CONST.DIR.CLASSES
+
+				testOutputDirectory CONST.DIR.SRC
+				if(repos.mod.testSrcRoot != null){
+					testSourceDirectory CONST.DIR.TEST.SRC
+					testOutputDirectory CONST.DIR.TEST.CLASSES
+				}
+
+				plugins {
+					plugin {
+						artifactId 'maven-compiler-plugin'
+						version '3.0'
+						configuration {
+							source javaVersion
+							target javaVersion
+						}
+					}
+				}
+			}
+			dependencies{
+
+				props.dependency.each({k,v ->
+					if(!v['maven']){
+						return
+					}
+					def maven = v.maven
+					dependency {
+						groupId "$maven.groupId"
+						artifactId "$maven.artifactId"
+						version "$maven.version"
+					}
+				})
+			}
+		}
+	}.writeTo('pom.xml')
+
+	project {
+
+		def props = kwg.properties
+		def mod = props.mod
+		def repos = mod.repos
+
+		file {
+			//closure executed after .project content is loaded from existing file
+			//but before gradle build information is merged
+			beforeMerged { project ->
+
+				def f = file(repos.baseLocation)
+				if(file("$mod.location") != file("$f/$repos.mod.location")){
+					project.linkedResources.clear()
+
+					natures 'org.eclipse.m2e.core.maven2Nature'
+					buildCommand 'org.eclipse.m2e.core.maven2Builder'
+
+					def srcLinks =[:]
+					srcLinks[("$CONST.DIR.SRC/$mod.project.reposLinkRoot")] = repos.mod.srcRoot
+					if(repos.mod.resRoot != null){
+						srcLinks['res'] = repos.mod.resRoot
+					}
+					if(repos.mod.testSrcRoot != null){
+						srcLinks['test'] = repos.mod.testSrcRoot
+					}
+					srcLinks.each {key,value ->
+						def uri = '$%7BMCP_REPOS_LOC%7D/' + value
+						linkedResource name: key, type: '2',locationUri: uri
+					}
+				}
+
+				def tempLinks = [
+					'jars',
+					CONST.DIR.CLASSES,
+				]
+				if(repos.mod.testSrcRoot != null){
+					tempLinks << CONST.DIR.TEST.CLASSES
+				}
+				tempLinks.each {link ->
+					def uri = '$%7BMCP_TEMP_LOC%7D/' + link
+					linkedResource name: link, type: '2', locationUri: uri
+				}
+			}
+			withXml { provider ->
+				def variables = [
+					'MCP_REPOS_BASE_LOC':repos.baseLocation,
+					'MCP_TEMP_BASE_LOC':file(props.mcp.working.location),
+					'MCP_REPOS_LOC':'$%7BMCP_REPOS_BASE_LOC%7D/' + mod.location,
+					'MCP_TEMP_LOC':'$%7BMCP_TEMP_BASE_LOC%7D/' + mod.location,
+				]
+				def xml = provider.asNode()
+
+				def variableList = xml.get('variableList')[0]
+				if(variableList == null){
+					variableList = xml.appendNode('variableList')
+				}
+
+				variables.each{key,value ->
+					def variable = variableList.get('variable').find{
+						it.get('name')[0].text() == key
+					}
+					if(variable==null){
+						variable = variableList.appendNode('variable')
+						variable.appendNode('name',key)
+						variable.appendNode('value',value)
+					}
+				}
+
+			}
+		}
+	}
+}

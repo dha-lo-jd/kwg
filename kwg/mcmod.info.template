@@ -1,0 +1,31 @@
+[{
+    "modid": "$modid",
+    "name": "$name",
+    "url": "$url"
+    "version": "$version",
+    "mcversion": "$mcversion",
+    "authors": [ "${{-> authors.join('", "')}}" ],
+    "parent": "$parent",
+    "requiredMods": [${{out->
+    	if(!requiredMods.isEmpty()){
+		    out << '"';
+		    out << requiredMods.join('", "');
+		    out << '"';
+	    }
+    }}],
+    "dependencies": [${{out->
+    	if(!dependencies.isEmpty()){
+		    out << '"';
+		    out << dependencies.join('", "');
+		    out << '"';
+	    }
+    }}],
+    "dependants": [${{out->
+    	if(!dependants.isEmpty()){
+		    out << '"';
+		    out << dependants.join('", "');
+		    out << '"';
+	    }
+    }}],
+    "useDependencyInformation": "$useDependencyInformation"
+  }]
