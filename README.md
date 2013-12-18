@@ -28,12 +28,12 @@ Kawo MC Gradle
 　・kwgディレクトリの中のbuild_eclipse.batを実行
 
 　・わいわい
-　
+
 ・Zip化作業
 
 　・build_mod_compress_fully.batを実行
-　
+
 　・ウェイｗ
-　
+
 　・二回目以降、本体の更新などでupdatemd5が必要な時以外は
 　　build_mod_compress.batでウェイｗできる
