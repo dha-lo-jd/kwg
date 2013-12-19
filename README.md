@@ -1,6 +1,6 @@
 kwg
 ===
-Kawo MC Gradle	
+Kawo MC Gradle
 エクリプス様のプロジェクトにする的アレ
 
 ##前提
@@ -34,26 +34,89 @@ Kawo MC Gradle
 
 1. ディレクトリ関係
 	1. properties.forge
-	2. properties.mod
-	3. properties.mod.repos  
-		`baseLocation` : `リポジトリのルートのパス`  
-		`mod.location` : `baseLocationからのMODのリポジトリのパス`  
-		`mod.srcRoot` : `mod.locationからのソース置き場のパス`  
-		`mod.testSrcRoot` : `mod.locationからのテストソース置き場のパス` *(オプション)*  
+	3. properties.mod.repos
+		`baseLocation` : `リポジトリのルートのパス`
+		`mod.location` : `baseLocationからのMODのリポジトリのパス`
+		`mod.srcRoot` : `mod.locationからのソース置き場のパス`
+		`mod.testSrcRoot` : `mod.locationからのテストソース置き場のパス` *(オプション)*
 		`mod.resRoot` : `mod.locationからのリソース置き場のパス`  *(オプション)*
-	4. properties.mcp
-	5. 動き(伝われ)  
-	MODSAMPLEというMODの配置例
-		1. パターン１(リポジトリがソースの特定パッケージをルートにしているケース)
+	4. properties.mod.project
+		`reposLinkRoot` : `プロジェクトからソースへのリンクをするルートのパス`
+	5. properties.mcp
+		`working.base` : `MCP作業用ディレクトリのパス(未使用)`
+		`working.location` : `このMODのMCP作業用ディレクトリのパス`
+	5. 動き(伝われ)
+	MODSAMPLEというMOD(ソースの場所はMODSAMPLE/src/org/lo/d/sample/*.java)の配置例
+		1. パターン１(リポジトリがソースの特定パッケージ(ex:`org.lo.d.sample`)をルートにしているケース)
 			1. 物理的配置
-				1. /hoge/fuga/repos <-`properties.mod.repos.baseLocation : "/hoge/fuga/repos"`  
-					* /MODSAMPLE  <-`mod.location : "MODSAMPLE"`  
-						* mod_sampleCore.java <-`mod.srcRoot : ""`  
+				1. /hoge/fuga/repos(リポジトリ) <-`properties.mod.repos.baseLocation : "/hoge/fuga/repos"`
+					* /MODSAMPLE  <-`mod.location : "MODSAMPLE"`
+						* *.java <-`mod.srcRoot : ""`
 						リポジトリ直下にソースがあるので`mod.srcRoot`は空にする
-				2. /foo/bar/project
-					* /MODSAMPLE <-`gradle起動場所なので自動的に認識される`
+				2. /foo/bar/projects(プロジェクト)
+					* /MODSAMPLE(MODSAMPLEプロジェクトのルート) <-`gradle起動場所なので自動的に認識される`
 						* /kwg <-`解凍したフォルダを置く`
-				3. /jane/john/working
-					* /MODSAMPLE
+						* .project
+				3. /jane/john/working(作業ディレクトリ)
+					* /MODSAMPLE <-`working.location : "/jane/john/working/MODSAMPLE"`
+					このディレクトリを使って難読化などの処理を行うため必須
+					ソースの削除やコピーを行うのでプロジェクトやリポジトリの場所と別の場所にする
 			2. インポートした後のエクリプス上の見た目
-		2. パターン２
+				* MODSAMPLE <-`プロジェクトのルート:/foo/bar/projects/MODSAMPLE`
+					* /kwg
+					* /src
+						* /org/lo/d/sample <-`properties.mod.project.reposLinkRoot : "org/lo/d/sample"`
+						-->/hoge/fuga/repos/MODSAMPLE へのリンク `properties.mod.repos.baseLocation`/`properties.mod.repos.mod.location`/`properties.mod.repos.mod.srcRoot`
+						sampleディレクトリがソースへのリンクになる
+		2. パターン２(リポジトリにソース、リソースそれぞれのルートディレクトリをコミットしている例)
+			1. 物理的配置
+				1. /hoge/fuga/repos(リポジトリ) <-`properties.mod.repos.baseLocation : "/hoge/fuga/repos"`
+					* /MODSAMPLE <-`mod.location : "MODSAMPLE"`
+						* /src(ソースディレクトリ) <- `mod.srcRoot : "src"`
+							* /org/lo/d/sample
+								* *.java
+						* /res(リソースディレクトリ) <- `mod.resRoot : "res"`
+							* /assets/modsample/textures/blocks
+								* *.png
+						リポジトリ直下にソースがあるので`mod.srcRoot`は空にする
+				2. /foo/bar/projects(プロジェクト)
+					* /MODSAMPLE(MODSAMPLEプロジェクトのルート) <-`gradle起動場所なので自動的に認識される`
+						* /kwg <-`解凍したフォルダを置く`
+						* .project
+				3. /jane/john/working(作業ディレクトリ)
+					* /MODSAMPLE <-`working.location : "/jane/john/working/MODSAMPLE"`
+					このディレクトリを使って難読化などの処理を行うため必須
+					ソースの削除やコピーを行うのでプロジェクトやリポジトリの場所と別の場所にする
+			2. インポートした後のエクリプス上の見た目
+				* MODSAMPLE <-`プロジェクトのルート:/foo/bar/projects/MODSAMPLE`
+					* /kwg
+					* /src <-`properties.mod.project.reposLinkRoot : ""`
+					-->/hoge/fuga/repos/MODSAMPLE/src へのリンク `properties.mod.repos.baseLocation`/`properties.mod.repos.mod.location`/`properties.mod.repos.mod.srcRoot`
+					srcディレクトリがソースへのリンクになる
+					* /res
+					-->/hoge/fuga/repos/MODSAMPLE/res へのリンク `properties.mod.repos.baseLocation`/`properties.mod.repos.mod.location`/`properties.mod.repos.mod.resRoot`
+					resディレクトリがリソースへのリンクになる
+		3. パターン３(リポジトリをそのままプロジェクトにするパッタン)
+			1. 物理的配置
+				1. /hoge/fuga/repos(リポジトリ) <-`properties.mod.repos.baseLocation : "/hoge/fuga/repos"`
+				2. **/hoge/fuga/repos**(プロジェクト)
+					* /MODSAMPLE(MODSAMPLEプロジェクトのルート) <-`mod.location : "MODSAMPLE"` <-`gradle起動場所なので自動的に認識される`
+						リポジトリ`mod.location`と同じ場所にある場合、リンクを作成しない
+						* /src(ソースディレクトリ) <- `mod.srcRoot : "src"`
+							* /org/lo/d/sample
+								* *.java
+						* /res(リソースディレクトリ) <- `mod.resRoot : "res"`
+							* /assets/modsample/textures/blocks
+								* *.png
+						リポジトリ直下にソースがあるので`mod.srcRoot`は空にする
+						* /kwg <-`解凍したフォルダを置く`
+						* .project
+				3. /jane/john/working(作業ディレクトリ)
+					* /MODSAMPLE <-`working.location : "/jane/john/working/MODSAMPLE"`
+					このディレクトリを使って難読化などの処理を行うため必須
+					ソースの削除やコピーを行うのでプロジェクトやリポジトリの場所と別の場所にする
+			2. インポートした後のエクリプス上の見た目
+				* MODSAMPLE <-`プロジェクトのルート:/foo/bar/projects/MODSAMPLE`
+					* /kwg
+					* /src
+					* /res
