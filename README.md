@@ -28,3 +28,11 @@ Kawo MC Gradle
 
 ##`properties.gradle`プロパティ詳解
 解説ウーンウーンっつってる
+
+1. ディレクトリ関係
+	1. properties.forge
+	2. properties.mod
+	3. properties.mcp
+	4. 動き(伝われ)
+		1. 物理的配置
+		2. エクリプス上の見た目
