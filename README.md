@@ -42,11 +42,14 @@ Kawo MC Gradle
 		`mod.testSrcRoot` : `mod.locationからのテストソース置き場のパス` *(オプション)*  
 		`mod.resRoot` : `mod.locationからのリソース置き場のパス`  *(オプション)*
 	4. properties.mcp
-	5. 動き(伝われ)
-		1. パターン１
+	5. 動き(伝われ)  
+	MODSAMPLEというMODの配置例
+		1. パターン１(リポジトリがソースの特定パッケージをルートにしているケース)
 			1. 物理的配置
-				1. /hoge/fuga/repos
-					└ 
+				1. /hoge/fuga/repos <-`properties.mod.repos.baseLocation : "/hoge/fuga/repos"`  
+					* /MODSAMPLE  <-`mod.location : "MODSAMPLE"`  
+						* mod_sampleCore.java <-`mod.srcRoot : ""`  
+						リポジトリ直下にソースがあるので`mod.srcRoot`は空にする
 				2. /foo/bar/project
 				3. /jane/john/working
 			2. エクリプス上の見た目
