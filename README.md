@@ -29,10 +29,25 @@ Kawo MC Gradle
 ##`properties.gradle`プロパティ詳解
 解説ウーンウーンっつってる
 
+> 用意した`properties.gradle`はいくつかの値を共有するために変数(ex:`def mcVersion = '1.6.4'`)を使っているが、
+本質的にはpropertiesに適切な値が設定されていればよい。
+
 1. ディレクトリ関係
 	1. properties.forge
 	2. properties.mod
-	3. properties.mcp
-	4. 動き(伝われ)
-		1. 物理的配置
-		2. エクリプス上の見た目
+	3. properties.mod.repos  
+		`baseLocation` : `リポジトリのルートのパス`  
+		`mod.location` : `baseLocationからのMODのリポジトリのパス`  
+		`mod.srcRoot` : `mod.locationからのソース置き場のパス`  
+		`mod.testSrcRoot` : `mod.locationからのテストソース置き場のパス` *(オプション)*  
+		`mod.resRoot` : `mod.locationからのリソース置き場のパス`  *(オプション)*
+	4. properties.mcp
+	5. 動き(伝われ)
+		1. パターン１
+			1. 物理的配置
+				1. /hoge/fuga/repos
+					└ 
+				2. /foo/bar/project
+				3. /jane/john/working
+			2. エクリプス上の見た目
+		2. パターン２
