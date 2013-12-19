@@ -51,6 +51,9 @@ Kawo MC Gradle
 						* mod_sampleCore.java <-`mod.srcRoot : ""`  
 						リポジトリ直下にソースがあるので`mod.srcRoot`は空にする
 				2. /foo/bar/project
+					* /MODSAMPLE <-`gradle起動場所なので自動的に認識される`
+						* /kwg <-`解凍したフォルダを置く`
 				3. /jane/john/working
-			2. エクリプス上の見た目
+					* /MODSAMPLE
+			2. インポートした後のエクリプス上の見た目
 		2. パターン２
