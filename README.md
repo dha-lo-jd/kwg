@@ -13,12 +13,20 @@ Kawo MC Gradle
 		1. マイクラ本体プロジェクトに`マイクラ用pom.xml_xxx`を置いて`pom.xml`にリネーム
 		2. エクリプス上でプロジェクトを右クリック＞`構成`＞`mavenプロジェクトに変換`
 	2. kwgファイル配備
-		1. `kwg.zip`を解凍
-		2. kwgディレクトリをプロジェクト化したい場所(ex:`/user/sample`)に置く
-		3. kwgディレクトリの中の`properties.gradle`を適宜いい感じにする
-		4. kwgディレクトリの中の`build_eclipse.bat`を実行
-		5. `/user/sample`がEclipseプロジェクトになるのでエクリプス様でインポート
-		6. インポートしたプロジェクトを右クリック＞`構成`＞`mavenプロジェクトに変換`
+		1. 単品で使うとき
+			1. `kwg.zip`を解凍
+			2. kwgディレクトリをプロジェクト化したい場所(ex:`/user/sample`)に置く
+		2. 使い回したいとき
+			1. このプロジェクトを丸ごとローカルにクローンする
+			2. `PROJECT/kwg/kwg_create_linker.bat`を実行
+			3. `PROJECT/kwg_linker.bat`が生成される
+			4. `kwg_linker.bat`を実行した場所に`kwg-->PROJECT/kwg`という感じでシンボリックリンクが作られる
+		3. 以下共通
+			1. kwgディレクトリの中の`properties.gradle.sample`を親ディレクトリにコピー
+			2. コピーした`properties.gradle.sample`を`properties.gradle`にリネームしていい感じに修正
+			3. kwgディレクトリの中の`build_eclipse.bat`を実行
+			4. `/user/sample`がEclipseプロジェクトになるのでエクリプス様でインポート
+			5. インポートしたプロジェクトを右クリック＞`構成`＞`mavenプロジェクトに変換`
 	3. **わいわい**
 
 2. Zip化作業
