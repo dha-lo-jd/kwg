@@ -1,5 +1,4 @@
 copy kwg.gradle ..
-copy properties.gradle ..
+if not exist "../properties.gradle" copy properties_.gradle "../properties.gradle"
 gradlew %1 --build-file="../kwg.gradle" --daemon
-del ..\build.gradle
-del ..\properties.gradle
+del ../build.gradle

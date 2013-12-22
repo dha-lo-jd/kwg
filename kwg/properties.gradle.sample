@@ -1,0 +1,127 @@
+kwg.setupProperties = { properties ->
+	def MCP_LOC = 'mcp'
+	def JARS_LOC = 'jars'
+
+	def author = 'dha_lo_jd'
+	def modName = 'LMMExtension'
+
+	def mcVersion = '1.6.2'
+	def modRevision = '0.0.7'
+	def forgeVersion = "$mcVersion-9.10.0.789"
+	def modFullName = "$modName"
+	def modDir = "mod_kawo_lmm_extension"
+
+	def workingDirBase = 'V:/eclipse_temp'
+
+	properties.java = [
+		version : '1.7',
+	]
+	properties.minecraft = [
+		version : mcVersion,
+	]
+	properties.forge = [
+		version : "$forgeVersion",
+		location : "V:/forge_mcp/$forgeVersion/forge",
+		mcpLocation : "$MCP_LOC",
+		jarsLocation : "$MCP_LOC/$JARS_LOC",
+		srcLocation : "$MCP_LOC/src",
+		classesLocation : 'V:/forge_mcp/$forgeVersion/forge/mcp/eclipse/Minecraft/target/classes',
+	]
+
+	properties.kwg = [
+		repos : [
+			location : "$workingDirBase/kwg/repos",
+		]
+	]
+
+	def pom = [
+		groupId:"$author",
+		name:"MOD_Kawo_LMM_Extension",
+	]
+	def repos = [
+		baseLocation : "V:/repos/mods/$mcVersion",
+		mod : [
+			location : "$modDir",
+			srcRoot : "src",
+			testSrcRoot : null,//			testSrcRoot : "test",
+			resRoot : "res",
+		],
+	]
+	def project = [
+		name : "$modFullName",
+		reposLinkRoot : "net/minecraft/graffiti",
+	]
+	properties.mod = [
+		name : "$modFullName",
+		infoName : "Kawo LMM Extension",
+		authors : ["$author"],
+		version:"$mcVersion-$modRevision",
+		url: '',
+		location: "$modDir",
+		project : project,
+		pom : pom,
+		repos : repos,
+	]
+
+	def working = [
+		base : "$workingDirBase",
+		location: "$workingDirBase/$modDir",
+	]
+	properties.mcp = [
+		working : working,
+	]
+
+	properties.dependency =[
+		//		'Minecraft' : [
+		//			maven : [
+		//				groupId : 'Minecraft',
+		//				artifactId : 'Minecraft',
+		//				version : "$forgeVersion",
+		//			],
+		//		],
+		'Dependency_LMM' : [
+			maven : [],
+			groupId : 'org.lo.d',
+			artifactId : 'Dependency_LMM',
+			version : "$mcVersion",
+		],
+		'MOD_Kawo_Commons' : [
+			maven : [],
+			//			mcmod : [
+			//				'parent',
+			//				'requiredMods',
+			//				'dependencies',
+			//			],
+			mcp : [
+				include : 'reobf',
+			],
+			groupId : 'org.lo.d',
+			artifactId : 'MOD_Kawo_Commons',
+			version : "$mcVersion",
+		],
+	]
+
+	properties.resources = [
+		files : [
+			//			[
+			//				path : 'res/mcmod.info',
+			//				//				root : '',
+			//			],
+			//			[
+			//				path : 'a:/b/c',
+			//				root : 'lib/to',// copy to hoge.zip!lib/to
+			//			],
+		],
+		dirs : [
+			[
+				path : 'res/',
+				// root : '',
+			],
+			//			[
+			//				path : 'res/assets/Graffiti/textures/blocks',
+			//				root : 'assets/Graffiti/textures/blocks',
+			//			],
+		],
+	]
+}
+
